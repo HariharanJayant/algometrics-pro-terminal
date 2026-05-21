@@ -8,40 +8,35 @@ from PIL import Image
 import sqlite3
 from sklearn.ensemble import RandomForestRegressor
 
-# --- MODULE 1: ENTERPRISE IDENTITY SECURITY GATEHOUSE ---
-# Universal fallback verification to see if the user object contains active credentials
-is_authenticated = False
-try:
-    if hasattr(st, "user") and st.user.is_logged_in:
-        is_authenticated = True
-    elif hasattr(st, "experimental_user") and hasattr(st.experimental_user, "is_logged_in") and st.experimental_user.is_logged_in:
-        is_authenticated = True
-except Exception:
-    pass
+# --- MODULE 1: LOCAL INSTITUTIONAL GATEHOUSE SECURITY ---
+# This establishes a robust access boundary without external server configuration dependencies
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
-if not is_authenticated:
+if not st.session_state.authenticated:
     st.markdown("""
         <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
             <h1 style="color: #101828; font-size: 2.2rem; font-weight: 700;">⚡ AlgoMetrics Pro Workstation</h1>
             <p style="color: #475467; font-size: 1.1rem; margin-bottom: 30px;">Institutional Quantitative Trading & Position Architecture Suite</p>
-            <div style="display: inline-block; padding: 24px; background: white; border: 1px solid #eaecf0; border-radius: 12px; box-shadow: 0 4px 6px rgba(16,24,40,0.03);">
-                <p style="color: #667085; font-size: 0.9rem; margin-bottom: 20px;">🔒 Secure Access Control Layer Active</p>
-            </div>
         </div>
     """, unsafe_allow_html=True)
     
-    st.button("🔑 Log In to Workstation Terminal", on_click=st.login, use_container_width=True)
-    st.stop()  # Aborts compilation immediately for unauthenticated traffic
+    with st.container(border=True):
+        st.markdown("<p style='text-align: center; color: #667085;'>🔒 Secure Terminal Gatehouse Boundary</p>", unsafe_allow_html=True)
+        # Masked operational passkey input field
+        access_key = st.text_input("ENTER OPERATOR SECURITY PASSKEY", type="password")
+        
+        # Change "admin123" to whatever custom master password you want to use!
+        if st.button("🔑 Verify and Unlock Terminal Infrastructure", use_container_width=True):
+            if access_key == "admin123":
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("ACCESS DENIED: Cryptographic credentials mismatch.")
+    st.stop()  # Aborts all backend calculation engines until unlocked
 
-# Extract user email safely based on available object structure
-user_email = "Internal Staff"
-try:
-    if hasattr(st, "user") and hasattr(st.user, "email"):
-        user_email = st.user.email
-    elif hasattr(st, "experimental_user") and "email" in st.experimental_user:
-        user_email = st.experimental_user["email"]
-except Exception:
-    pass
+# Set system identification metadata fallback
+user_email = "Master Operator"
 
 # --- SYSTEM DATABASE INITIALIZATION (SQLite Layer) ---
 def init_db():
@@ -101,7 +96,8 @@ with app_mode[0]:
     # --- SIDEBAR CONTROL INTERFACE ---
     st.sidebar.markdown(f"👤 **User Identity:** `{user_email}`")
     if st.sidebar.button("🚪 Secure System Sign Out"):
-        st.logout()
+        st.session_state.authenticated = False
+        st.rerun()
 
     st.sidebar.divider()
     st.sidebar.markdown("### 🎛️ SYSTEM CONTROLS")
@@ -443,7 +439,7 @@ with app_mode[1]:
 
         # --- SECTOR CORRELATION HEATMAP MATRIX ---
         st.write("##")
-        st.markdown("### 🧮 Technology & Sector Asset Inter-Correlation Matrix (Python 3.14 Safe Generation)")
+        st.markdown("### 🧮 Technology & Sector Asset Inter-Correlation Matrix")
         
         @st.cache_data(ttl=300)
         def generate_correlation_matrix_data():
