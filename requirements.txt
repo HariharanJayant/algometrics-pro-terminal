@@ -4,3 +4,4 @@ pandas
 numpy
 Pillow
 scikit-learn
+plotly>=5.0.0
