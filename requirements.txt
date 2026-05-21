@@ -3,3 +3,4 @@ yfinance
 pandas
 numpy
 Pillow
+scikit-learn
