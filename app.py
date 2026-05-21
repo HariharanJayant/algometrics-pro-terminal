@@ -9,8 +9,8 @@ import sqlite3
 from sklearn.ensemble import RandomForestRegressor
 
 # --- MODULE 1: ENTERPRISE IDENTITY SECURITY GATEHOUSE ---
-# This forces authentication via your configured OIDC provider (like Google or Auth0)
-if not st.user.is_logged_in:
+# Uses the universally compatible experimental user context to evaluate login state
+if not st.experimental_user.get("email"):
     st.markdown("""
         <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
             <h1 style="color: #101828; font-size: 2.2rem; font-weight: 700;">⚡ AlgoMetrics Pro Workstation</h1>
@@ -21,9 +21,9 @@ if not st.user.is_logged_in:
         </div>
     """, unsafe_allow_html=True)
     
-    # Renders the native secure single-sign-on protocol button
+    # Triggers the single sign-on authentication framework
     st.button("🔑 Log In to Workstation Terminal", on_click=st.login, use_container_width=True)
-    st.stop()  # Strictly halts compilation for unauthenticated visitors
+    st.stop()  # Aborts compilation immediately for unauthenticated traffic
 
 # --- SYSTEM DATABASE INITIALIZATION (SQLite Layer) ---
 def init_db():
@@ -77,11 +77,11 @@ app_mode = st.tabs(["📊 Individual Asset Terminal", "🌍 Macro Market Radar",
 # ==============================================================================
 with app_mode[0]:
     st.title("⚡ AlgoMetrics Pro Terminal")
-    st.markdown(f"<p style='color: #475467; font-size: 1.05rem; margin-top:-15px;'>Enterprise Market Structure Mapping — Welcome, Authenticated Operator</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color: #475467; font-size: 1.05rem; margin-top:-15px;'>Enterprise Market Structure Mapping & Multi-Indicator Quant Suite</p>", unsafe_allow_html=True)
     st.divider()
 
     # --- SIDEBAR CONTROL INTERFACE ---
-    st.sidebar.markdown(f"👤 **User Identity:** `{st.user.get('email', 'Internal Staff')}`")
+    st.sidebar.markdown(f"👤 **User Identity:** `{st.experimental_user.get('email', 'Internal Staff')}`")
     if st.sidebar.button("🚪 Secure System Sign Out"):
         st.logout()
 
@@ -114,7 +114,7 @@ with app_mode[0]:
     st.sidebar.markdown("### 📸 CHART INGESTION PIPELINE")
     uploaded_screenshot = st.sidebar.file_uploader("DROP LIVE SCREENSHOT FILE HERE", type=["png", "jpg", "jpeg"])
 
-    # --- MODULE 2: MACHINE LEARNING VOLATILITY PREDICTION ENGINE ---
+    # --- MACHINE LEARNING VOLATILITY PREDICTION ENGINE ---
     def calculate_ml_volatility_prediction(df):
         try:
             df_ml = df.copy()
@@ -137,6 +137,7 @@ with app_mode[0]:
         except:
             return float(df['High'].iloc[-1] - df['Low'].iloc[-1])
 
+    # --- MULTI-TIMEFRAME CONFLUENCE PROCESSOR ---
     @st.cache_data(ttl=60)
     def fetch_multi_timeframe_confluence(ticker):
         try:
@@ -263,7 +264,57 @@ with app_mode[0]:
 
                     st.markdown("### 📸 Image Engine Interface Reference")
                     st.image(Image.open(uploaded_screenshot), use_container_width=True)
-                
+                    
+                    # --- PERFORMANCE BACKTESTER HUB ---
+                    st.markdown("### 🔬 Quantitative Performance Backtester (1-Year Walk-Forward)")
+                    with st.container(border=True):
+                        df_bt = data["df"].copy()
+                        initial_equity = float(account_size)
+                        current_equity = initial_equity
+                        equity_curve = [initial_equity]
+                        total_trades = 0
+                        winning_trades = 0
+                        
+                        for idx in range(15, len(df_bt)):
+                            row_prev = df_bt.iloc[idx-1]
+                            row_curr = df_bt.iloc[idx]
+                            
+                            if row_prev['Close'] > row_prev['EMA20'] and row_prev['RSI'] < 65:
+                                trade_gain = (row_curr['Close'] - row_prev['Close']) / row_prev['Close']
+                                current_equity *= (1 + trade_gain)
+                                total_trades += 1
+                                if trade_gain > 0: winning_trades += 1
+                            equity_curve.append(round(current_equity, 2))
+                        
+                        win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
+                        
+                        bt_c1, bt_c2, bt_c3 = st.columns(3)
+                        bt_c1.metric("Simulated Win Rate", f"{win_rate:.1f}%")
+                        bt_c2.metric("Total Executions", f"{total_trades} Trades")
+                        bt_c3.metric("End Portfolio Value", f"${current_equity:,.2f}")
+                        
+                        bt_labels = list(range(len(equity_curve)))
+                        js_bt_html = f"""
+                        <html>
+                        <head><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head>
+                        <body>
+                            <canvas id="btChart" style="width:100%; height:140px;"></canvas>
+                            <script>
+                                const ctx2 = document.getElementById('btChart').getContext('2d');
+                                new Chart(ctx2, {{
+                                    type: 'line',
+                                    data: {{
+                                        labels: {bt_labels},
+                                        datasets: [{{ label: 'Growth Vector ($)', data: {equity_curve}, borderColor: '#039855', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(3, 152, 85, 0.05)' }}]
+                                    }},
+                                    options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: {{ x: {{ display: false }}, y: {{ grid: {{ color: '#eaecf0' }} }} }} }}
+                                }});
+                            </script>
+                        </body>
+                        </html>
+                        """
+                        components.html(js_bt_html, height=145)
+
                 with right_col:
                     st.markdown("### 📋 Tactical Command Dashboard")
                     with st.container(border=True):
@@ -292,7 +343,7 @@ with app_mode[0]:
                         st.write(f"📦 **Volume Target:** `{shares}` Units | 📊 **Dynamic R:R:** `1 : {rr:.2f}`")
                         
                         st.divider()
-                        # --- MODULE 3: PERSISTENT DATABASE COMPILE EXECUTION ---
+                        # --- SQL DATABASE WRITER ---
                         if st.button("💾 Log Order Configuration to SQLite Database", use_container_width=True):
                             db_conn = sqlite3.connect("trading_workstation.db")
                             db_cursor = db_conn.cursor()
@@ -372,8 +423,45 @@ with app_mode[1]:
                     """
                     components.html(macro_js_html, height=110)
 
+        # --- SECTOR CORRELATION HEATMAP MATRIX ---
+        st.write("##")
+        st.markdown("### 🧮 Technology & Sector Asset Inter-Correlation Matrix (Python 3.14 Safe Generation)")
+        
+        @st.cache_data(ttl=300)
+        def generate_correlation_matrix_data():
+            tickers = ["NVDA", "AMD", "AAPL", "MSFT", "QQQ", "SPY"]
+            start_date = datetime.now() - timedelta(days=60)
+            df_assets = yf.download(tickers, start=start_date, end=datetime.now())['Close']
+            if isinstance(df_assets.columns, pd.MultiIndex):
+                df_assets.columns = [col[0] for col in df_assets.columns]
+            corr_df = df_assets.corr().round(2)
+            return tickers, corr_df.values.tolist()
+
+        try:
+            corr_labels, corr_values = generate_correlation_matrix_data()
+            
+            html_table = "<table style='width:100%; border-collapse: collapse; text-align: center; font-family: sans-serif; font-size: 0.9rem;'>"
+            html_table += "<tr><th style='padding: 12px; border: 1px solid #eaecf0; background-color: #f9fafb;'>Asset</th>"
+            for label in corr_labels:
+                html_table += f"<th style='padding: 12px; border: 1px solid #eaecf0; background-color: #f9fafb;'>{label}</th>"
+            html_table += "</tr>"
+            
+            for r_idx, row_name in enumerate(corr_labels):
+                html_table += f"<tr><td style='padding: 12px; border: 1px solid #eaecf0; font-weight: 600; background-color: #f9fafb;'>{row_name}</td>"
+                for c_idx, val in enumerate(corr_values[r_idx]):
+                    alpha = abs(val)
+                    bg_color = f"rgba(3, 152, 85, {alpha})" if val > 0 else f"rgba(217, 45, 32, {alpha})"
+                    text_color = "#ffffff" if alpha > 0.5 else "#101828"
+                    html_table += f"<td style='padding: 12px; border: 1px solid #eaecf0; background-color: {bg_color}; color: {text_color}; font-weight: bold;'>{val}</td>"
+                html_table += "</tr>"
+            html_table += "</table>"
+            
+            st.markdown(html_table, unsafe_allow_html=True)
+        except Exception as ex:
+            st.info("Computing sector network correlations... Please update system memory cache.")
+
 # ==============================================================================
-# TAB 3: ACTIVE ORDER LOG (DATABASE HUB)
+# TAB 3: ACTIVE ORDER LOG
 # ==============================================================================
 with app_mode[2]:
     st.title("📋 Active Order Log Ledger")
@@ -384,11 +472,10 @@ with app_mode[2]:
         db_conn = sqlite3.connect("trading_workstation.db")
         db_cursor = db_conn.cursor()
         db_cursor.execute("DELETE FROM order_logs")
-        db_conn.commit()
+        conn.commit()
         db_conn.close()
         st.toast("Database ledger flushed successfully.")
         
-    # Read and frame logs back out of the local SQLite database file
     db_conn = sqlite3.connect("trading_workstation.db")
     try:
         df_logs = pd.read_sql_query("SELECT timestamp, ticker, direction, entry_price, stop_loss, target_price, shares, capital_deployed FROM order_logs ORDER BY id DESC", db_conn)
