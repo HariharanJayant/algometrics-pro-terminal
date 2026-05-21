@@ -9,8 +9,17 @@ import sqlite3
 from sklearn.ensemble import RandomForestRegressor
 
 # --- MODULE 1: ENTERPRISE IDENTITY SECURITY GATEHOUSE ---
-# Uses the universally compatible experimental user context to evaluate login state
-if not st.experimental_user.get("email"):
+# Universal fallback verification to see if the user object contains active credentials
+is_authenticated = False
+try:
+    if hasattr(st, "user") and st.user.is_logged_in:
+        is_authenticated = True
+    elif hasattr(st, "experimental_user") and hasattr(st.experimental_user, "is_logged_in") and st.experimental_user.is_logged_in:
+        is_authenticated = True
+except Exception:
+    pass
+
+if not is_authenticated:
     st.markdown("""
         <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
             <h1 style="color: #101828; font-size: 2.2rem; font-weight: 700;">⚡ AlgoMetrics Pro Workstation</h1>
@@ -21,9 +30,18 @@ if not st.experimental_user.get("email"):
         </div>
     """, unsafe_allow_html=True)
     
-    # Triggers the single sign-on authentication framework
     st.button("🔑 Log In to Workstation Terminal", on_click=st.login, use_container_width=True)
     st.stop()  # Aborts compilation immediately for unauthenticated traffic
+
+# Extract user email safely based on available object structure
+user_email = "Internal Staff"
+try:
+    if hasattr(st, "user") and hasattr(st.user, "email"):
+        user_email = st.user.email
+    elif hasattr(st, "experimental_user") and "email" in st.experimental_user:
+        user_email = st.experimental_user["email"]
+except Exception:
+    pass
 
 # --- SYSTEM DATABASE INITIALIZATION (SQLite Layer) ---
 def init_db():
@@ -81,7 +99,7 @@ with app_mode[0]:
     st.divider()
 
     # --- SIDEBAR CONTROL INTERFACE ---
-    st.sidebar.markdown(f"👤 **User Identity:** `{st.experimental_user.get('email', 'Internal Staff')}`")
+    st.sidebar.markdown(f"👤 **User Identity:** `{user_email}`")
     if st.sidebar.button("🚪 Secure System Sign Out"):
         st.logout()
 
@@ -472,7 +490,7 @@ with app_mode[2]:
         db_conn = sqlite3.connect("trading_workstation.db")
         db_cursor = db_conn.cursor()
         db_cursor.execute("DELETE FROM order_logs")
-        conn.commit()
+        db_conn.commit()
         db_conn.close()
         st.toast("Database ledger flushed successfully.")
         
